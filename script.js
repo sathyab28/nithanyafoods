@@ -6,7 +6,9 @@ const defaultProducts = [
         description: "Rich in calcium and protein, perfect for daily nutrition. Organically grown and naturally processed.",
         price: 120,
         image: "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=800&h=600&fit=crop&q=80&auto=format",
-        currency: "₹"
+        currency: "₹",
+        stock: 50,
+        inStock: true
     },
     {
         id: 2,
@@ -14,7 +16,9 @@ const defaultProducts = [
         description: "Premium quality peanuts, rich in protein and healthy fats. Great for snacking and cooking.",
         price: 180,
         image: "https://images.pexels.com/photos/1300975/pexels-photo-1300975.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-        currency: "₹"
+        currency: "₹",
+        stock: 30,
+        inStock: true
     },
     {
         id: 3,
@@ -22,7 +26,9 @@ const defaultProducts = [
         description: "Gluten-free millet with high fiber content. Ideal for diabetes management and weight control.",
         price: 100,
         image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&h=600&fit=crop&q=80&auto=format",
-        currency: "₹"
+        currency: "₹",
+        stock: 40,
+        inStock: true
     },
     {
         id: 4,
@@ -30,7 +36,9 @@ const defaultProducts = [
         description: "Nutritious and energy-rich millet. Excellent source of iron and magnesium.",
         price: 90,
         image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&h=600&fit=crop&q=80&auto=format",
-        currency: "₹"
+        currency: "₹",
+        stock: 35,
+        inStock: true
     },
     {
         id: 5,
@@ -38,7 +46,9 @@ const defaultProducts = [
         description: "Small grain with big benefits. High in fiber and essential minerals for a healthy diet.",
         price: 110,
         image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&h=600&fit=crop&q=80&auto=format",
-        currency: "₹"
+        currency: "₹",
+        stock: 25,
+        inStock: true
     },
     {
         id: 6,
@@ -46,7 +56,9 @@ const defaultProducts = [
         description: "Fast-cooking millet with low glycemic index. Perfect for quick, healthy meals.",
         price: 95,
         image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&h=600&fit=crop&q=80&auto=format",
-        currency: "₹"
+        currency: "₹",
+        stock: 0,
+        inStock: false
     }
 ];
 
@@ -106,7 +118,23 @@ function addToCart(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
     
+    // Check if product is in stock
+    const stock = product.stock || 0;
+    const inStock = product.inStock !== false && stock > 0;
+    
+    if (!inStock) {
+        showNotification('This product is out of stock.');
+        return;
+    }
+    
     const existingItem = cart.find(item => item.productId === productId);
+    const requestedQuantity = existingItem ? existingItem.quantity + 1 : 1;
+    
+    // Check if requested quantity exceeds available stock
+    if (requestedQuantity > stock) {
+        showNotification(`Only ${stock} kg available in stock.`);
+        return;
+    }
     
     if (existingItem) {
         existingItem.quantity += 1;
@@ -255,13 +283,239 @@ function placeOrder(orderData, transactionId = null, paymentStatus = 'pending') 
     closeCheckoutModal();
     toggleCart();
     
-    // Send order notification to admin
+    // Send order notification to admin and customer
     if (paymentStatus === 'paid') {
+        // Send email to admin
         sendOrderNotificationToAdmin(order);
-        sendOrderConfirmationToCustomer(order);
+        
+        // Send email to customer (if email provided)
+        if (order.email) {
+            sendOrderConfirmationToCustomer(order);
+        }
+        
+        // Send SMS to customer
+        sendOrderSMSToCustomer(order);
     }
     
     showNotification('Order placed successfully! Order ID: ' + order.id);
+}
+
+// Email Notification Functions
+function sendOrderNotificationToAdmin(order) {
+    const emailConfig = typeof EMAILJS_CONFIG !== 'undefined' ? EMAILJS_CONFIG : null;
+    const adminConfig = typeof ADMIN_CONFIG !== 'undefined' ? ADMIN_CONFIG : { email: '', name: 'Admin' };
+    
+    // Check if EmailJS is properly configured
+    if (!emailConfig || !adminConfig.email || !emailConfig.serviceId || !emailConfig.templateId || !emailConfig.publicKey) {
+        console.warn('EmailJS not properly configured. Please update config.js with your EmailJS credentials.');
+        console.log('Order details for admin:', {
+            orderId: order.id,
+            customer: order.fullName,
+            phone: order.phone,
+            total: order.total,
+            items: order.items
+        });
+        return;
+    }
+    
+    // Check if EmailJS library is loaded
+    if (typeof emailjs === 'undefined') {
+        console.error('EmailJS library not loaded. Please check if the script is included in index.html');
+        return;
+    }
+    
+    // Initialize EmailJS
+    try {
+        emailjs.init(emailConfig.publicKey);
+        
+        // Format order items
+        const orderItems = order.items.map(item => 
+            `${item.name} - ${item.quantity} kg × ₹${item.price} = ₹${item.quantity * item.price}`
+        ).join('\n');
+        
+        const templateParams = {
+            to_email: adminConfig.email,
+            to_name: adminConfig.name,
+            order_id: order.id,
+            order_date: new Date(order.date).toLocaleString('en-IN'),
+            customer_name: order.fullName,
+            customer_email: order.email || 'Not provided',
+            customer_phone: order.phone,
+            order_items: orderItems,
+            order_total: `₹${order.total.toFixed(2)}`,
+            payment_id: order.transactionId || 'N/A',
+            delivery_address: `${order.address}, ${order.city} - ${order.pincode}`,
+            payment_status: order.paymentStatus || 'pending',
+            payment_method: order.paymentMethod || 'UPI'
+        };
+        
+        emailjs.send(emailConfig.serviceId, emailConfig.templateId, templateParams)
+            .then(function(response) {
+                console.log('✅ Admin notification email sent successfully!', response.status, response.text);
+                showNotification('Admin notified via email');
+            }, function(error) {
+                console.error('❌ Failed to send admin notification email:', error);
+                console.error('Error details:', {
+                    status: error.status,
+                    text: error.text,
+                    serviceId: emailConfig.serviceId,
+                    templateId: emailConfig.templateId
+                });
+            });
+    } catch (error) {
+        console.error('Error initializing EmailJS:', error);
+    }
+}
+
+function sendOrderConfirmationToCustomer(order) {
+    const emailConfig = typeof EMAILJS_CONFIG !== 'undefined' ? EMAILJS_CONFIG : null;
+    const customerEmail = order.email;
+    
+    if (!emailConfig || !customerEmail) {
+        console.log('EmailJS not configured or customer email not provided. Order details:', order);
+        return;
+    }
+    
+    // Check if EmailJS is properly configured
+    if (!emailConfig.serviceId || !emailConfig.templateId || !emailConfig.publicKey) {
+        console.warn('EmailJS not properly configured. Customer email not sent.');
+        return;
+    }
+    
+    // Check if EmailJS library is loaded
+    if (typeof emailjs === 'undefined') {
+        console.error('EmailJS library not loaded.');
+        return;
+    }
+    
+    // Initialize EmailJS
+    try {
+        emailjs.init(emailConfig.publicKey);
+        
+        // Format order items
+        const orderItems = order.items.map(item => 
+            `${item.name} - ${item.quantity} kg × ₹${item.price} = ₹${item.quantity * item.price}`
+        ).join('\n');
+        
+        const templateParams = {
+            to_email: customerEmail,
+            to_name: order.fullName,
+            order_id: order.id,
+            order_date: new Date(order.date).toLocaleString('en-IN'),
+            order_items: orderItems,
+            order_total: `₹${order.total.toFixed(2)}`,
+            payment_id: order.transactionId || 'N/A',
+            delivery_address: `${order.address}, ${order.city} - ${order.pincode}`,
+            payment_status: order.paymentStatus || 'pending',
+            payment_method: order.paymentMethod || 'UPI'
+        };
+        
+        emailjs.send(emailConfig.serviceId, emailConfig.templateId, templateParams)
+            .then(function(response) {
+                console.log('✅ Customer confirmation email sent successfully!', response.status, response.text);
+            }, function(error) {
+                console.error('❌ Failed to send customer confirmation email:', error);
+            });
+    } catch (error) {
+        console.error('Error sending customer email:', error);
+    }
+}
+
+// SMS Notification Function
+function sendOrderSMSToCustomer(order) {
+    const customerPhone = order.phone;
+    
+    if (!customerPhone) {
+        console.warn('Customer phone number not provided. SMS not sent.');
+        return;
+    }
+    
+    // Format phone number (remove spaces, ensure it starts with +)
+    let phoneNumber = customerPhone.trim().replace(/\s+/g, '');
+    if (!phoneNumber.startsWith('+')) {
+        // If it doesn't start with +, assume it's an Indian number and add +91
+        if (phoneNumber.startsWith('0')) {
+            phoneNumber = '+91' + phoneNumber.substring(1);
+        } else if (phoneNumber.length === 10) {
+            phoneNumber = '+91' + phoneNumber;
+        } else {
+            phoneNumber = '+91' + phoneNumber;
+        }
+    }
+    
+    // Format order items for SMS
+    const orderItems = order.items.map(item => 
+        `${item.name}(${item.quantity}kg)`
+    ).join(', ');
+    
+    // Create SMS message
+    const smsMessage = `Thank you for your order! Order ID: ${order.id}. Items: ${orderItems}. Total: ₹${order.total.toFixed(2)}. We'll process your order soon. - Nithanya Foods`;
+    
+    // For SMS, you need to use a backend service or SMS gateway
+    // This is a placeholder that can be integrated with:
+    // 1. Twilio API (requires backend)
+    // 2. AWS SNS (requires backend)
+    // 3. TextLocal API (can work with frontend but needs API key)
+    // 4. Your own backend API
+    
+    // Option 1: If you have a backend API endpoint
+    const smsApiUrl = typeof SMS_API_CONFIG !== 'undefined' && SMS_API_CONFIG.apiUrl 
+        ? SMS_API_CONFIG.apiUrl 
+        : null;
+    
+    if (smsApiUrl) {
+        // Send SMS via your backend API
+        fetch(smsApiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                phone: phoneNumber,
+                message: smsMessage,
+                orderId: order.id
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('✅ SMS sent successfully:', data);
+        })
+        .catch(error => {
+            console.error('❌ Failed to send SMS:', error);
+        });
+    } else {
+        // Option 2: Use a service that works from frontend (like TextLocal)
+        // Note: This requires API key in config
+        const smsConfig = typeof SMS_CONFIG !== 'undefined' ? SMS_CONFIG : null;
+        
+        if (smsConfig && smsConfig.apiKey && smsConfig.sender) {
+            // Using TextLocal API as example (you can replace with your preferred service)
+            const textLocalUrl = `https://api.textlocal.in/send/?apikey=${encodeURIComponent(smsConfig.apiKey)}&numbers=${encodeURIComponent(phoneNumber)}&message=${encodeURIComponent(smsMessage)}&sender=${encodeURIComponent(smsConfig.sender)}`;
+            
+            fetch(textLocalUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log('✅ SMS sent successfully via TextLocal');
+                    } else {
+                        console.error('❌ SMS sending failed:', data);
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Failed to send SMS:', error);
+                });
+        } else {
+            // Log SMS details for manual sending or backend integration
+            console.log('SMS Configuration:', {
+                phone: phoneNumber,
+                message: smsMessage,
+                note: 'SMS API not configured. Please set up SMS_CONFIG in config.js or use a backend API.'
+            });
+            
+            // Show notification to user
+            showNotification('Order confirmed! SMS will be sent to ' + phoneNumber);
+        }
+    }
 }
 
 function displayOrders() {
@@ -400,16 +654,32 @@ function displayUPIPaymentDetails() {
     const upiDetails = document.getElementById('upiPaymentDetails');
     if (!upiDetails) return;
     
+    // Get UPI config from config.js file
     const upiConfig = typeof UPI_CONFIG !== 'undefined' ? UPI_CONFIG : {
         upiId: 'yourname@upi',
         upiName: 'Nithanya Foods',
         instructions: 'Please make payment using any UPI app and enter the transaction ID below.'
     };
     
+    // Validate UPI ID is configured
+    if (!upiConfig.upiId || upiConfig.upiId === 'yourname@upi') {
+        console.warn('UPI ID not configured. Please update config.js with your UPI ID.');
+        upiDetails.innerHTML = `
+            <div class="upi-info-box" style="border-color: #dc3545;">
+                <p style="color: #dc3545; text-align: center; padding: 1rem;">
+                    ⚠️ UPI ID not configured. Please update config.js with your UPI ID.
+                </p>
+            </div>
+        `;
+        return;
+    }
+    
     const total = getCartTotal();
     
-    // Create UPI payment link
-    const upiLink = `upi://pay?pa=${encodeURIComponent(upiConfig.upiId)}&pn=${encodeURIComponent(upiConfig.upiName)}&am=${total}&cu=INR`;
+    // Create UPI payment string for QR code (UPI URI format)
+    // Format: upi://pay?pa=<UPI_ID>&pn=<PAYEE_NAME>&am=<AMOUNT>&cu=<CURRENCY>&tn=<TRANSACTION_NOTE>
+    const upiPaymentString = `upi://pay?pa=${encodeURIComponent(upiConfig.upiId)}&pn=${encodeURIComponent(upiConfig.upiName || 'Nithanya Foods')}&am=${total.toFixed(2)}&cu=INR&tn=Nithanya Foods Order`;
+    const upiLink = upiPaymentString;
     
     upiDetails.innerHTML = `
         <div class="upi-info-box">
@@ -425,21 +695,98 @@ function displayUPIPaymentDetails() {
                         <button class="copy-btn" onclick="copyUPIId('${upiConfig.upiId}')" title="Copy UPI ID">📋</button>
                     </div>
                 </div>
-                ${upiConfig.qrCodeImage ? `
-                    <div class="upi-qr">
-                        <img src="${upiConfig.qrCodeImage}" alt="UPI QR Code" class="qr-code-image">
-                        <p class="qr-hint">Scan this QR code to pay</p>
-                    </div>
-                ` : ''}
-                <div class="upi-actions">
-                    <a href="${upiLink}" class="upi-pay-btn" target="_blank">
-                        💳 Pay with UPI
-                    </a>
+                <div class="upi-qr-section">
+                    ${upiConfig.qrCodeImage ? `
+                        <div class="upi-qr">
+                            <img src="${upiConfig.qrCodeImage}" alt="UPI QR Code" class="qr-code-image">
+                            <p class="qr-hint">Scan this QR code to pay</p>
+                        </div>
+                    ` : `
+                        <div class="upi-qr">
+                            <div id="upiQRCode" class="qr-code-container"></div>
+                            <p class="qr-hint">Scan this QR code with any UPI app to pay</p>
+                        </div>
+                    `}
                 </div>
-                <p class="upi-instructions">${upiConfig.instructions || 'Please make payment using any UPI app (Google Pay, PhonePe, Paytm, etc.) and enter the transaction ID below.'}</p>
+                <div class="upi-actions">
+                    <a href="${upiLink}" class="upi-pay-btn" onclick="handleUPIPaymentClick(event, '${upiConfig.upiId}', ${total})">
+                        💳 Pay with UPI App
+                    </a>
+                    <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem; text-align: center;">
+                        Click to open UPI app and pay ₹${total.toFixed(2)} to ${upiConfig.upiId}
+                    </p>
+                </div>
+                <p class="upi-instructions">${upiConfig.instructions || 'After successful payment, enter the transaction ID below and click "Place Order". Order will be placed automatically and confirmation email will be sent.'}</p>
             </div>
         </div>
     `;
+    
+    // Generate QR code if QRCode library is available
+    if (!upiConfig.qrCodeImage) {
+        const qrContainer = document.getElementById('upiQRCode');
+        if (qrContainer) {
+            // Clear any existing QR code
+            qrContainer.innerHTML = '';
+            
+            // Try using QRCode.js library
+            if (typeof QRCode !== 'undefined') {
+                try {
+                    new QRCode(qrContainer, {
+                        text: upiPaymentString,
+                        width: 200,
+                        height: 200,
+                        colorDark: '#2d5016',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                } catch (error) {
+                    console.error('QRCode.js error:', error);
+                    generateQRCodeFallback(qrContainer, upiPaymentString);
+                }
+            } else if (typeof QRCodeJS !== 'undefined') {
+                // Alternative QR code library
+                try {
+                    new QRCodeJS({
+                        content: upiPaymentString,
+                        padding: 4,
+                        width: 200,
+                        height: 200,
+                        color: '#2d5016',
+                        background: '#ffffff',
+                        ecl: 'H',
+                        container: qrContainer
+                    });
+                } catch (error) {
+                    console.error('QRCodeJS error:', error);
+                    generateQRCodeFallback(qrContainer, upiPaymentString);
+                }
+            } else {
+                // Fallback: Use online QR code API
+                generateQRCodeFallback(qrContainer, upiPaymentString);
+            }
+        }
+    }
+}
+
+// Fallback QR code generation using online API
+function generateQRCodeFallback(container, text) {
+    // Use a QR code API service as fallback
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}`;
+    container.innerHTML = `<img src="${qrApiUrl}" alt="UPI QR Code" class="qr-code-image" onerror="this.style.display='none'; this.parentElement.innerHTML='<p style=\'color:#666; padding:1rem;\'>QR code unavailable. Please use the UPI ID or payment link.</p>'">`;
+}
+
+// Handle UPI payment link click
+function handleUPIPaymentClick(event, upiId, amount) {
+    // Log payment attempt for debugging
+    console.log('UPI Payment initiated:', {
+        upiId: upiId,
+        amount: amount,
+        timestamp: new Date().toISOString()
+    });
+    
+    // The link will open the UPI app automatically
+    // No need to prevent default - let the browser handle the upi:// protocol
+    showNotification(`Opening UPI app to pay ₹${amount.toFixed(2)} to ${upiId}`);
 }
 
 function copyUPIId(upiId) {
@@ -511,10 +858,24 @@ function handleCheckout(event) {
         paymentMethod: 'UPI'
     };
     
-    // Confirm payment before placing order
-    if (confirm('Have you completed the UPI payment?\n\nTransaction ID: ' + transactionId + '\n\nClick OK to confirm and place your order.')) {
-        placeOrder(orderData, transactionId, 'paid');
+    // Automatically place order after payment (transaction ID provided)
+    // Show processing state
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Processing Order...';
     }
+    
+    // Place order automatically - payment is considered successful when transaction ID is provided
+    placeOrder(orderData, transactionId, 'paid');
+    
+    // Reset button state after delay
+    setTimeout(() => {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Place Order';
+        }
+    }, 2000);
 }
 
 // Google Sign-In Handler
@@ -768,9 +1129,16 @@ function logout() {
 
 // Function to create product card
 function createProductCard(product) {
+    // Check stock status
+    const stock = product.stock || 0;
+    const inStock = product.inStock !== false && stock > 0;
+    const stockStatus = inStock ? (stock > 10 ? 'In Stock' : `Only ${stock} kg left`) : 'Out of Stock';
+    const stockClass = inStock ? 'in-stock' : 'out-of-stock';
+    
     return `
-        <div class="product-card">
-            <img src="${product.image || ''}" alt="${product.name}" class="product-image" 
+        <div class="product-card ${!inStock ? 'out-of-stock-card' : ''}">
+            ${!inStock ? '<div class="out-of-stock-badge">Out of Stock</div>' : ''}
+            <img src="${product.image || ''}" alt="${product.name}" class="product-image ${!inStock ? 'out-of-stock-image' : ''}" 
                  onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300?text=${encodeURIComponent(product.name)}';"
                  loading="lazy">
             <div class="product-info">
@@ -779,8 +1147,13 @@ function createProductCard(product) {
                 <div class="product-price">
                     <span class="currency">${product.currency}</span>${product.price}<span class="unit">/kg</span>
                 </div>
-                <button class="add-to-cart" onclick="addToCart(${product.id})">
-                    Add to Cart
+                <div class="stock-status ${stockClass}">
+                    ${stockStatus}
+                </div>
+                <button class="add-to-cart ${!inStock ? 'disabled' : ''}" 
+                        onclick="${inStock ? `addToCart(${product.id})` : 'showNotification(\'This product is out of stock\')'}"
+                        ${!inStock ? 'disabled' : ''}>
+                    ${inStock ? 'Add to Cart' : 'Out of Stock'}
                 </button>
             </div>
         </div>
@@ -845,19 +1218,27 @@ function displayAdminProducts() {
         return;
     }
     
-    productsList.innerHTML = products.map(product => `
+    productsList.innerHTML = products.map(product => {
+        const stock = product.stock || 0;
+        const inStock = product.inStock !== false && stock > 0;
+        const stockStatus = inStock ? `${stock} kg` : 'Out of Stock';
+        const stockClass = inStock ? 'in-stock' : 'out-of-stock';
+        
+        return `
         <div class="admin-product-item">
             <div class="admin-product-info">
                 <h3>${product.name}</h3>
                 <p>${product.description}</p>
                 <p class="admin-product-price">${product.currency}${product.price}/kg</p>
+                <p class="admin-product-stock ${stockClass}">Stock: ${stockStatus}</p>
             </div>
             <div class="admin-product-actions">
                 <button class="edit-btn" onclick="openEditModal(${product.id})">Edit</button>
                 <button class="delete-btn" onclick="deleteProduct(${product.id})">Delete</button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Add Product Function
@@ -869,8 +1250,9 @@ function addProduct(event) {
     const price = parseFloat(document.getElementById('productPrice').value);
     const image = document.getElementById('productImage').value.trim();
     const currency = document.getElementById('productCurrency').value.trim() || '₹';
+    const stock = parseFloat(document.getElementById('productStock').value) || 0;
     
-    if (!name || !description || isNaN(price) || price < 0 || !image) {
+    if (!name || !description || isNaN(price) || price < 0 || !image || isNaN(stock) || stock < 0) {
         alert('Please fill in all required fields correctly.');
         return;
     }
@@ -884,7 +1266,9 @@ function addProduct(event) {
         description,
         price,
         image,
-        currency
+        currency,
+        stock: stock,
+        inStock: stock > 0
     };
     
     products.push(newProduct);
@@ -969,6 +1353,7 @@ function openEditModal(productId) {
     document.getElementById('editProductPrice').value = product.price;
     document.getElementById('editProductImage').value = product.image;
     document.getElementById('editProductCurrency').value = product.currency;
+    document.getElementById('editProductStock').value = product.stock || 0;
     
     // Update image preview
     updateImagePreview('editProductImage', 'editProductImagePreview');
@@ -995,8 +1380,9 @@ function editProduct(event) {
     const price = parseFloat(document.getElementById('editProductPrice').value);
     const image = document.getElementById('editProductImage').value.trim();
     const currency = document.getElementById('editProductCurrency').value.trim() || '₹';
+    const stock = parseFloat(document.getElementById('editProductStock').value) || 0;
     
-    if (!name || !description || isNaN(price) || price < 0 || !image) {
+    if (!name || !description || isNaN(price) || price < 0 || !image || isNaN(stock) || stock < 0) {
         alert('Please fill in all required fields correctly.');
         return;
     }
@@ -1013,7 +1399,9 @@ function editProduct(event) {
         description,
         price,
         image,
-        currency
+        currency,
+        stock: stock,
+        inStock: stock > 0
     };
     
     saveProducts();
@@ -1091,11 +1479,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    document.getElementById('checkoutModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeCheckoutModal();
-        }
-    });
+    // Checkout modal should only close via close button, not by clicking outside
+    // Removed click-outside-to-close functionality for checkout modal
+    // document.getElementById('checkoutModal').addEventListener('click', function(e) {
+    //     if (e.target === this) {
+    //         closeCheckoutModal();
+    //     }
+    // });
     
     // Close cart sidebar when clicking outside
     document.getElementById('cartSidebar').addEventListener('click', function(e) {

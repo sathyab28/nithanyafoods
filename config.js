@@ -39,9 +39,23 @@ const UPI_CONFIG = {
 
 // EmailJS Configuration
 // Get your keys from: https://www.emailjs.com/
+// IMPORTANT: Replace the placeholder values with your actual EmailJS credentials
 const EMAILJS_CONFIG = {
     serviceId: 'YOUR_EMAILJS_SERVICE_ID',    // Replace with your EmailJS Service ID
     templateId: 'YOUR_EMAILJS_TEMPLATE_ID',  // Replace with your EmailJS Template ID
     publicKey: 'YOUR_EMAILJS_PUBLIC_KEY'      // Replace with your EmailJS Public Key
 };
+
+// SMS Configuration (Optional)
+// Option 1: Use TextLocal API (works from frontend)
+// Get your API key from: https://www.textlocal.in/
+const SMS_CONFIG = {
+    apiKey: '',  // Your TextLocal API key (optional)
+    sender: 'NITHNY'  // Your sender name (6 characters max, optional)
+};
+
+// Option 2: Use your own backend API for SMS
+// const SMS_API_CONFIG = {
+//     apiUrl: 'https://your-backend-api.com/send-sms'  // Your backend API endpoint
+// };
 
