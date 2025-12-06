@@ -6,8 +6,10 @@
     <meta name="description" content="Premium quality millets online - Ragi, Peanut, and more organic grains delivered to your doorstep">
     <title>Nithanya Foods - Premium Millets Online</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Google Sign-In script removed to prevent loading spinner -->
+    <!-- <script src="https://accounts.google.com/gsi/client" async defer></script> -->
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
     <header class="header">
@@ -80,20 +82,10 @@
                     <label for="password">Password *</label>
                     <input type="password" id="password" required placeholder="Enter your password" autocomplete="current-password">
                 </div>
-                <div class="form-group">
-                    <label for="userType">User Type *</label>
-                    <select id="userType" required>
-                        <option value="">Select user type</option>
-                        <option value="user">Website User</option>
-                        <option value="admin">Admin User</option>
-                    </select>
-                </div>
-                <div class="form-info">
-                    <p><strong>Login Instructions:</strong></p>
-                    <p>Please contact the administrator for login credentials.</p>
-                    <p>For testing purposes, default credentials are configured in the system.</p>
-                </div>
                 <button type="submit" class="submit-btn">Login</button>
+                <!-- Google Sign-In removed - use regular login -->
+                <!-- To enable Gmail login, configure Google OAuth and uncomment the code below -->
+                <!--
                 <div class="divider">
                     <span>OR</span>
                 </div>
@@ -110,14 +102,7 @@
                      data-shape="rectangular"
                      data-logo_alignment="left">
                 </div>
-                <p class="google-note">
-                    <strong>Gmail Login Setup:</strong><br>
-                    1. Go to <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a><br>
-                    2. Create a project and enable Google+ API<br>
-                    3. Create OAuth 2.0 credentials<br>
-                    4. Replace "YOUR_GOOGLE_CLIENT_ID" in script.js with your Client ID<br>
-                    For now, you can use regular login with username/password.
-                </p>
+                -->
             </form>
         </div>
     </div>
@@ -230,6 +215,17 @@
                     <h3>Order Summary</h3>
                     <div id="checkoutSummary" class="checkout-summary">
                         <!-- Order summary will be displayed here -->
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h3>Payment via UPI</h3>
+                    <div id="upiPaymentDetails" class="upi-payment-details">
+                        <!-- UPI payment details will be displayed here -->
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label for="transactionId">UPI Transaction ID *</label>
+                        <input type="text" id="transactionId" required placeholder="Enter your UPI transaction ID (e.g., 1234567890)" pattern="[A-Za-z0-9]{8,20}">
+                        <small class="form-hint">After payment, you'll receive a transaction ID. Enter it here.</small>
                     </div>
                 </div>
                 <button type="submit" class="submit-btn">Place Order</button>

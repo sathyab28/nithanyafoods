@@ -24,14 +24,14 @@ const DEFAULT_USERS = [
 
 // Admin Contact Information (for order notifications)
 const ADMIN_CONFIG = {
-    email: 'admin@nithanyafoods.com',  // Change this to your admin email
-    phone: '+91XXXXXXXXXX',            // Change this to your admin phone number
+    email: 'sathyaudhay28@gmail.com',  // Change this to your admin email
+    phone: '+919741513800',            // Change this to your admin phone number
     name: 'Nithanya Foods Admin'
 };
 
 // UPI Payment Configuration
 const UPI_CONFIG = {
-    upiId: 'yourname@upi',              // Replace with your UPI ID (e.g., yourname@paytm, yourname@ybl)
+    upiId: '9626132782@ptsbi',              // Replace with your UPI ID (e.g., yourname@paytm, yourname@ybl)
     upiName: 'Nithanya Foods',           // Your business/account name
     qrCodeImage: '',                     // Optional: URL to your UPI QR code image
     instructions: 'Please make payment using any UPI app (Google Pay, PhonePe, Paytm, etc.) and enter the transaction ID below.'

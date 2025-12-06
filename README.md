@@ -47,20 +47,31 @@ To enable Gmail/Google Sign-In:
 
 **Note:** For local testing, you can use `http://localhost` as an authorized origin.
 
-### Payment Gateway Setup (Razorpay)
+### UPI Payment Setup
 
-To enable online payments:
+To configure UPI payments:
 
-1. Go to [Razorpay Dashboard](https://dashboard.razorpay.com)
-2. Sign up or log in to your account
-3. Go to Settings → API Keys
-4. Copy your Key ID
-5. In `config.js`, replace `YOUR_RAZORPAY_KEY_ID` with your actual Key ID
+1. Get your UPI ID from your bank or payment app (e.g., `yourname@paytm`, `yourname@ybl`, `yourname@okaxis`)
+2. In `config.js`, update `UPI_CONFIG`:
+   - Set `upiId` to your UPI ID
+   - Set `upiName` to your business/account name
+   - Optionally add `qrCodeImage` URL if you have a QR code image
+   - Customize `instructions` if needed
 
-**Important:** 
-- For production, you should use a backend server to create orders securely
-- Never expose your Razorpay Key Secret in client-side code
-- Use test keys for development and live keys for production
+**Example:**
+```javascript
+const UPI_CONFIG = {
+    upiId: 'nithanyafoods@paytm',
+    upiName: 'Nithanya Foods',
+    qrCodeImage: 'https://example.com/qr-code.png',  // Optional
+    instructions: 'Please make payment using any UPI app...'
+};
+```
+
+**How it works:**
+- Customers see your UPI ID and can pay directly
+- They enter the transaction ID after payment
+- Orders are placed only after transaction ID is confirmed
 
 ### Email Notifications Setup (EmailJS)
 

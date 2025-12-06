@@ -25,6 +25,17 @@ body {
     overflow-x: hidden;
 }
 
+/* Hide Google Sign-In loading spinner */
+.g_id_signin,
+#g_id_onload,
+iframe[src*="accounts.google.com"],
+iframe[src*="gsi"],
+.gsi-material-button {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -728,6 +739,151 @@ body {
     line-height: 1.6;
 }
 
+/* UPI Payment Styles */
+.upi-payment-details {
+    margin: 1rem 0;
+}
+
+.upi-info-box {
+    background: var(--white);
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.upi-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--light-bg);
+}
+
+.upi-header h4 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.upi-amount {
+    font-size: 1.3rem;
+    color: var(--secondary-color);
+    margin: 0;
+}
+
+.upi-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.upi-id-section {
+    text-align: center;
+}
+
+.upi-id-section label {
+    display: block;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.upi-id-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--light-bg);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    border: 2px dashed var(--secondary-color);
+}
+
+.upi-id-display strong {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    font-family: 'Courier New', monospace;
+}
+
+.copy-btn {
+    background: var(--secondary-color);
+    color: var(--white);
+    border: none;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.3s;
+}
+
+.copy-btn:hover {
+    background: var(--primary-color);
+}
+
+.upi-qr {
+    text-align: center;
+    padding: 1rem;
+    background: var(--white);
+    border-radius: 8px;
+}
+
+.qr-code-image {
+    max-width: 200px;
+    max-height: 200px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.qr-hint {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 0;
+}
+
+.upi-actions {
+    text-align: center;
+}
+
+.upi-pay-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: var(--white);
+    padding: 0.875rem 2rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: transform 0.3s, box-shadow 0.3s;
+    box-shadow: var(--shadow);
+}
+
+.upi-pay-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.upi-instructions {
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.6;
+    text-align: center;
+    margin: 0;
+    padding: 1rem;
+    background: #fff9e6;
+    border-radius: 6px;
+    border-left: 4px solid #ffc107;
+}
+
+.form-hint {
+    display: block;
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
 .image-upload-section {
     display: flex;
     flex-direction: column;
@@ -1199,6 +1355,18 @@ body {
 
 .login-form {
     padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.login-form .submit-btn {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 .form-info {

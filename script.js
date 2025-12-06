@@ -5,7 +5,7 @@ const defaultProducts = [
         name: "Ragi (Finger Millet)",
         description: "Rich in calcium and protein, perfect for daily nutrition. Organically grown and naturally processed.",
         price: 120,
-        image: "https://images.pexels.com/photos/162712/ragi-finger-millet-grain-162712.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
+        image: "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=800&h=600&fit=crop&q=80&auto=format",
         currency: "₹"
     },
     {
@@ -21,7 +21,7 @@ const defaultProducts = [
         name: "Foxtail Millet",
         description: "Gluten-free millet with high fiber content. Ideal for diabetes management and weight control.",
         price: 100,
-        image: "https://images.pexels.com/photos/162712/ragi-finger-millet-grain-162712.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
+        image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&h=600&fit=crop&q=80&auto=format",
         currency: "₹"
     },
     {
@@ -29,7 +29,7 @@ const defaultProducts = [
         name: "Pearl Millet (Bajra)",
         description: "Nutritious and energy-rich millet. Excellent source of iron and magnesium.",
         price: 90,
-        image: "https://images.pexels.com/photos/162712/ragi-finger-millet-grain-162712.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
+        image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&h=600&fit=crop&q=80&auto=format",
         currency: "₹"
     },
     {
@@ -37,7 +37,7 @@ const defaultProducts = [
         name: "Little Millet",
         description: "Small grain with big benefits. High in fiber and essential minerals for a healthy diet.",
         price: 110,
-        image: "https://images.pexels.com/photos/162712/ragi-finger-millet-grain-162712.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
+        image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&h=600&fit=crop&q=80&auto=format",
         currency: "₹"
     },
     {
@@ -45,7 +45,7 @@ const defaultProducts = [
         name: "Barnyard Millet",
         description: "Fast-cooking millet with low glycemic index. Perfect for quick, healthy meals.",
         price: 95,
-        image: "https://images.pexels.com/photos/162712/ragi-finger-millet-grain-162712.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
+        image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&h=600&fit=crop&q=80&auto=format",
         currency: "₹"
     }
 ];
@@ -230,13 +230,16 @@ function saveOrders() {
     localStorage.setItem('nithanyaFoodsOrders', JSON.stringify(orders));
 }
 
-function placeOrder(orderData) {
+function placeOrder(orderData, transactionId = null, paymentStatus = 'pending') {
     const order = {
         id: Date.now(),
         date: new Date().toISOString(),
         items: [...cart],
         total: getCartTotal(),
-        status: 'pending',
+        status: paymentStatus === 'paid' ? 'confirmed' : 'pending',
+        transactionId: transactionId,
+        paymentMethod: orderData.paymentMethod || 'UPI',
+        paymentStatus: paymentStatus,
         ...orderData
     };
     
@@ -251,6 +254,12 @@ function placeOrder(orderData) {
     displayOrders();
     closeCheckoutModal();
     toggleCart();
+    
+    // Send order notification to admin
+    if (paymentStatus === 'paid') {
+        sendOrderNotificationToAdmin(order);
+        sendOrderConfirmationToCustomer(order);
+    }
     
     showNotification('Order placed successfully! Order ID: ' + order.id);
 }
@@ -382,6 +391,84 @@ function displayCheckoutSummary() {
             <strong>Total: ₹${total.toFixed(2)}</strong>
         </div>
     `;
+    
+    // Display UPI payment details
+    displayUPIPaymentDetails();
+}
+
+function displayUPIPaymentDetails() {
+    const upiDetails = document.getElementById('upiPaymentDetails');
+    if (!upiDetails) return;
+    
+    const upiConfig = typeof UPI_CONFIG !== 'undefined' ? UPI_CONFIG : {
+        upiId: 'yourname@upi',
+        upiName: 'Nithanya Foods',
+        instructions: 'Please make payment using any UPI app and enter the transaction ID below.'
+    };
+    
+    const total = getCartTotal();
+    
+    // Create UPI payment link
+    const upiLink = `upi://pay?pa=${encodeURIComponent(upiConfig.upiId)}&pn=${encodeURIComponent(upiConfig.upiName)}&am=${total}&cu=INR`;
+    
+    upiDetails.innerHTML = `
+        <div class="upi-info-box">
+            <div class="upi-header">
+                <h4>Pay via UPI</h4>
+                <p class="upi-amount">Amount: <strong>₹${total.toFixed(2)}</strong></p>
+            </div>
+            <div class="upi-details">
+                <div class="upi-id-section">
+                    <label>UPI ID:</label>
+                    <div class="upi-id-display">
+                        <strong>${upiConfig.upiId}</strong>
+                        <button class="copy-btn" onclick="copyUPIId('${upiConfig.upiId}')" title="Copy UPI ID">📋</button>
+                    </div>
+                </div>
+                ${upiConfig.qrCodeImage ? `
+                    <div class="upi-qr">
+                        <img src="${upiConfig.qrCodeImage}" alt="UPI QR Code" class="qr-code-image">
+                        <p class="qr-hint">Scan this QR code to pay</p>
+                    </div>
+                ` : ''}
+                <div class="upi-actions">
+                    <a href="${upiLink}" class="upi-pay-btn" target="_blank">
+                        💳 Pay with UPI
+                    </a>
+                </div>
+                <p class="upi-instructions">${upiConfig.instructions || 'Please make payment using any UPI app (Google Pay, PhonePe, Paytm, etc.) and enter the transaction ID below.'}</p>
+            </div>
+        </div>
+    `;
+}
+
+function copyUPIId(upiId) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(upiId).then(function() {
+            showNotification('UPI ID copied to clipboard!');
+        }, function() {
+            // Fallback for older browsers
+            fallbackCopyUPIId(upiId);
+        });
+    } else {
+        fallbackCopyUPIId(upiId);
+    }
+}
+
+function fallbackCopyUPIId(upiId) {
+    const textArea = document.createElement('textarea');
+    textArea.value = upiId;
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        showNotification('UPI ID copied to clipboard!');
+    } catch (err) {
+        showNotification('Failed to copy. Please copy manually: ' + upiId);
+    }
+    document.body.removeChild(textArea);
 }
 
 function handleCheckout(event) {
@@ -623,14 +710,17 @@ function handleLogin(event) {
     
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
-    const userType = document.getElementById('userType').value;
     
-    if (!username || !password || !userType) {
+    if (!username || !password) {
         alert('Please fill in all fields.');
         return;
     }
     
-    const user = authenticateUser(username, password, userType);
+    // Try to authenticate as admin first, then as user
+    let user = authenticateUser(username, password, 'admin');
+    if (!user) {
+        user = authenticateUser(username, password, 'user');
+    }
     
     if (user) {
         setCurrentUser(user);
@@ -680,8 +770,9 @@ function logout() {
 function createProductCard(product) {
     return `
         <div class="product-card">
-            <img src="${product.image}" alt="${product.name}" class="product-image" 
-                 onerror="this.src='https://via.placeholder.com/400x300?text=${encodeURIComponent(product.name)}'">
+            <img src="${product.image || ''}" alt="${product.name}" class="product-image" 
+                 onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300?text=${encodeURIComponent(product.name)}';"
+                 loading="lazy">
             <div class="product-info">
                 <h3 class="product-name">${product.name}</h3>
                 <p class="product-description">${product.description}</p>
@@ -803,9 +894,68 @@ function addProduct(event) {
     // Reset form
     document.getElementById('addProductForm').reset();
     document.getElementById('productCurrency').value = '₹';
+    const preview = document.getElementById('productImagePreview');
+    if (preview) {
+        preview.innerHTML = '';
+        preview.classList.remove('active');
+    }
     
     alert('Product added successfully!');
     switchTab('manage');
+}
+
+// Image Upload Functions
+function handleImageUpload(fileInputId, urlInputId, previewId) {
+    const fileInput = document.getElementById(fileInputId);
+    const urlInput = document.getElementById(urlInputId);
+    const preview = document.getElementById(previewId);
+    
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
+    
+    const file = fileInput.files[0];
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please select an image file.');
+        fileInput.value = '';
+        return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Image size should be less than 5MB.');
+        fileInput.value = '';
+        return;
+    }
+    
+    // Read file as base64
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Image = e.target.result;
+        urlInput.value = base64Image;
+        updateImagePreview(urlInputId, previewId);
+    };
+    reader.onerror = function() {
+        alert('Error reading image file.');
+    };
+    reader.readAsDataURL(file);
+}
+
+function updateImagePreview(urlInputId, previewId) {
+    const urlInput = document.getElementById(urlInputId);
+    const preview = document.getElementById(previewId);
+    
+    if (!urlInput || !preview) return;
+    
+    const imageUrl = urlInput.value.trim();
+    
+    if (imageUrl) {
+        preview.innerHTML = `<img src="${imageUrl}" alt="Preview">`;
+        preview.classList.add('active');
+    } else {
+        preview.innerHTML = '';
+        preview.classList.remove('active');
+    }
 }
 
 // Edit Product Functions
@@ -820,12 +970,20 @@ function openEditModal(productId) {
     document.getElementById('editProductImage').value = product.image;
     document.getElementById('editProductCurrency').value = product.currency;
     
+    // Update image preview
+    updateImagePreview('editProductImage', 'editProductImagePreview');
+    
     document.getElementById('editModal').classList.add('active');
 }
 
 function closeEditModal() {
     document.getElementById('editModal').classList.remove('active');
     document.getElementById('editProductForm').reset();
+    const preview = document.getElementById('editProductImagePreview');
+    if (preview) {
+        preview.innerHTML = '';
+        preview.classList.remove('active');
+    }
 }
 
 function editProduct(event) {
