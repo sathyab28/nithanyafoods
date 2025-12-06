@@ -1289,7 +1289,7 @@ function addProduct(event) {
 }
 
 // Image Upload Functions
-function handleImageUpload(fileInputId, urlInputId, previewId) {
+async function handleImageUpload(fileInputId, urlInputId, previewId) {
     const fileInput = document.getElementById(fileInputId);
     const urlInput = document.getElementById(urlInputId);
     const preview = document.getElementById(previewId);
@@ -1305,24 +1305,91 @@ function handleImageUpload(fileInputId, urlInputId, previewId) {
         return;
     }
     
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        alert('Image size should be less than 5MB.');
+    // Validate file size (max 5MB for ImgBB, 10MB for base64 fallback)
+    if (file.size > 10 * 1024 * 1024) {
+        alert('Image size should be less than 10MB.');
         fileInput.value = '';
         return;
     }
     
-    // Read file as base64
+    // Show uploading state
+    if (preview) {
+        preview.innerHTML = '<p style="text-align: center; padding: 1rem; color: #666;">📤 Uploading image...</p>';
+        preview.classList.add('active');
+    }
+    
+    // Try to upload to cloud service first
+    const imageHostingConfig = typeof IMAGE_HOSTING_CONFIG !== 'undefined' ? IMAGE_HOSTING_CONFIG : null;
+    
+    if (imageHostingConfig && imageHostingConfig.service === 'imgbb' && imageHostingConfig.imgbbApiKey) {
+        try {
+            const imageUrl = await uploadImageToImgBB(file, imageHostingConfig.imgbbApiKey);
+            if (imageUrl) {
+                urlInput.value = imageUrl;
+                updateImagePreview(urlInputId, previewId);
+                showNotification('Image uploaded successfully!');
+                return;
+            }
+        } catch (error) {
+            console.warn('Failed to upload to ImgBB, falling back to base64:', error);
+        }
+    }
+    
+    // Fallback to base64 if cloud upload fails or not configured
     const reader = new FileReader();
     reader.onload = function(e) {
         const base64Image = e.target.result;
         urlInput.value = base64Image;
         updateImagePreview(urlInputId, previewId);
+        if (preview) {
+            preview.innerHTML += '<p style="font-size: 0.8rem; color: #ff9800; margin-top: 0.5rem;">⚠️ Using local storage (image visible only to you)</p>';
+        }
     };
     reader.onerror = function() {
         alert('Error reading image file.');
+        if (preview) {
+            preview.innerHTML = '';
+            preview.classList.remove('active');
+        }
     };
     reader.readAsDataURL(file);
+}
+
+// Upload image to ImgBB
+async function uploadImageToImgBB(file, apiKey) {
+    return new Promise((resolve, reject) => {
+        // Convert file to base64 for ImgBB API
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64 = e.target.result.split(',')[1]; // Remove data:image/...;base64, prefix
+            
+            // ImgBB API expects form data with key and image (base64)
+            const formData = new FormData();
+            formData.append('key', apiKey);
+            formData.append('image', base64);
+            
+            fetch('https://api.imgbb.com/1/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data && data.data.url) {
+                    console.log('✅ Image uploaded to ImgBB:', data.data.url);
+                    resolve(data.data.url);
+                } else {
+                    console.error('❌ ImgBB upload failed:', data.error);
+                    reject(new Error(data.error?.message || 'Upload failed'));
+                }
+            })
+            .catch(error => {
+                console.error('❌ ImgBB upload error:', error);
+                reject(error);
+            });
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+    });
 }
 
 function updateImagePreview(urlInputId, previewId) {

@@ -59,3 +59,16 @@ const SMS_CONFIG = {
 //     apiUrl: 'https://your-backend-api.com/send-sms'  // Your backend API endpoint
 // };
 
+// Image Hosting Configuration
+// Option 1: Use ImgBB (Free image hosting - works from frontend)
+// Get your API key from: https://api.imgbb.com/
+const IMAGE_HOSTING_CONFIG = {
+    service: 'imgbb',  // 'imgbb' or 'cloudinary' or 'custom'
+    imgbbApiKey: '',  // Your ImgBB API key (get from https://api.imgbb.com/)
+    // Option 2: Use Cloudinary (requires account setup)
+    // cloudinaryCloudName: '',
+    // cloudinaryUploadPreset: '',
+    // Option 3: Use your own backend API
+    // customApiUrl: 'https://your-backend-api.com/upload-image'
+};
+

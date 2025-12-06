@@ -52,3 +52,11 @@ const EMAILJS_CONFIG = {
     publicKey: 'YOUR_EMAILJS_PUBLIC_KEY'      // Replace with your EmailJS Public Key
 };
 
+// Image Hosting Configuration
+// Option 1: Use ImgBB (Free image hosting - recommended)
+// Get your API key from: https://api.imgbb.com/ (free account)
+const IMAGE_HOSTING_CONFIG = {
+    service: 'imgbb',  // 'imgbb' or 'cloudinary' or 'custom'
+    imgbbApiKey: 'YOUR_IMGBB_API_KEY'  // Get from https://api.imgbb.com/
+};
+
