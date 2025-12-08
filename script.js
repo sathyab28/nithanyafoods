@@ -5,7 +5,7 @@ const defaultProducts = [
         name: "Ragi (Finger Millet)",
         description: "Rich in calcium and protein, perfect for daily nutrition. Organically grown and naturally processed.",
         price: 120,
-        image: "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=800&h=600&fit=crop&q=80&auto=format",
+        image: "temp/ragi.png",
         currency: "₹",
         stock: 50,
         inStock: true
@@ -15,7 +15,7 @@ const defaultProducts = [
         name: "Peanut (Groundnut)",
         description: "Premium quality peanuts, rich in protein and healthy fats. Great for snacking and cooking.",
         price: 180,
-        image: "https://images.pexels.com/photos/1300975/pexels-photo-1300975.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
+        image: "temp/peanut.png",
         currency: "₹",
         stock: 30,
         inStock: true
@@ -25,7 +25,7 @@ const defaultProducts = [
         name: "Foxtail Millet",
         description: "Gluten-free millet with high fiber content. Ideal for diabetes management and weight control.",
         price: 100,
-        image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&h=600&fit=crop&q=80&auto=format",
+        image: "temp/foxtail.png",
         currency: "₹",
         stock: 40,
         inStock: true
@@ -35,7 +35,7 @@ const defaultProducts = [
         name: "Pearl Millet (Bajra)",
         description: "Nutritious and energy-rich millet. Excellent source of iron and magnesium.",
         price: 90,
-        image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&h=600&fit=crop&q=80&auto=format",
+        image: "temp/pearl.png",
         currency: "₹",
         stock: 35,
         inStock: true
@@ -45,17 +45,16 @@ const defaultProducts = [
         name: "Little Millet",
         description: "Small grain with big benefits. High in fiber and essential minerals for a healthy diet.",
         price: 110,
-        image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&h=600&fit=crop&q=80&auto=format",
+        image: "temp/little.png",
         currency: "₹",
-        stock: 25,
         inStock: true
     },
     {
         id: 6,
-        name: "Barnyard Millet",
+        name: "Millet",
         description: "Fast-cooking millet with low glycemic index. Perfect for quick, healthy meals.",
         price: 95,
-        image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800&h=600&fit=crop&q=80&auto=format",
+        image: "temp/m.png",
         currency: "₹",
         stock: 0,
         inStock: false
